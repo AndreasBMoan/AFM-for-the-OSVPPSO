@@ -8,7 +8,7 @@ from plotly.offline import plot
 import matplotlib.pyplot as plt
 import networkx as nx
 
-def draw_routes(LegNet, Insts, Times, Vessels):
+def draw_routes(fuel_cost, Insts, Times, Vessels):
     G = nx.Graph()
 
     InstTimes = [[[] for i in Insts] for v in Vessels]
@@ -18,7 +18,7 @@ def draw_routes(LegNet, Insts, Times, Vessels):
                 count = 0
                 for j in Insts:
                     for tau in Times:
-                        if LegNet[v,j,tau,i,t] != 0 or LegNet[v,i,t,j,tau] != 0:
+                        if fuel_cost[v][j][tau][i][t] != 0 or fuel_cost[v][i][t][j][tau] != 0:
                             count += 1
                 if count != 0:
                     InstTimes[v][i].append(t)
@@ -32,8 +32,8 @@ def draw_routes(LegNet, Insts, Times, Vessels):
         for t in Times:
             for j in Insts:
                 for tau in Times:
-                    if LegNet[0,i,t,j,tau]!= 0:
-                        G.add_edge(t*30 + i, tau*30 + j, weight=LegNet[0, i, t, j, tau])
+                    if fuel_cost[0][i][t][j][tau]!= 0:
+                        G.add_edge(t*30 + i, tau*30 + j, weight=fuel_cost[0][i][t][j][tau])
                         
     
     edge_x = []
