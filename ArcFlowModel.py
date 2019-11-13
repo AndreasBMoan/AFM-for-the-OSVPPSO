@@ -1,11 +1,9 @@
-import numpy as np
+#import numpy as np
 import math
 import gurobipy as gp
-import plotly.graph_objects as go
-import networkx as nx
-import plot
 import data
 import optimizationModel as om
+import plot
 
 print("\n\n\n-----------------OLJA KJORER--------------------\n\n\n")
 
@@ -108,9 +106,7 @@ def dp_consumption(serStartTime):
 
 
 def time_to_return(vessel, inst2, time2):
-    if inst2 == 0:
-        return True
-    elif  math.ceil(Distance[inst2][0]/(maxSpeed + SpeedImpact[Weather[time2]])) + time2 <= AvaliableTime[vessel] + 168: #HER SJEKKER VI KUN WEATHER AV STARTTIDEN PÅ LEGGET
+    if  math.ceil(Distance[inst2][0]/(maxSpeed + SpeedImpact[Weather[time2]])) + time2 <= AvaliableTime[vessel] + 168: #HER SJEKKER VI KUN WEATHER AV STARTTIDEN PÅ LEGGET
         return True
     else:
         return False
@@ -205,9 +201,7 @@ for vessel in Vessels:
 
 print("\n\nNetwork generation successful!")
 print("------------------------------------------------")
-print("number of edges generated:       ")
-print("number of total potential edges: ", len(fuel_cost))
-print("------------------------------------------------\n")
+
 print("Plotting graph....")
 
 plot.draw_routes(fuel_cost,Insts,Times,Vessels)
@@ -225,7 +219,7 @@ plot.draw_routes(fuel_cost,Insts,Times,Vessels)
 print("-------------- OPTIMIZING MODEL ----------------\n")
 
 try:
-    om.solve(Insts, Vessels, Times, fuel_cost)
+    om.solve(fuel_cost)
 
 except gp.GurobiError as e:
     print('Error code ' + str(e.errno) + ": " + str(e))

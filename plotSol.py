@@ -1,14 +1,16 @@
+# -*- coding: utf-8 -*-
 """
-Created on Thu Oct 31 18:05:19 2019
+Created on Tue Nov 12 11:52:35 2019
 
 @author: andrebmo
 """
+
 import plotly.graph_objects as go
 from plotly.offline import plot
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import networkx as nx
 
-def draw_routes(fuel_cost, Insts, Times, Vessels):
+def draw_routes(x_vars, Insts, Times, Vessels):
     G = nx.Graph()
 
     InstTimes = [[[] for i in Insts] for v in Vessels]
@@ -18,22 +20,23 @@ def draw_routes(fuel_cost, Insts, Times, Vessels):
                 count = 0
                 for j in Insts:
                     for tau in Times:
-                        if fuel_cost[v][j][tau][i][t] != 0 or fuel_cost[v][i][t][j][tau] != 0:
+                        if x_vars[v][j][tau][i][t] != 0 or x_vars[v][i][t][j][tau] != 0:
                             count += 1
                 if count != 0:
                     InstTimes[v][i].append(t)
 
+    for v in Vessels:
+        for i in Insts:
+            for t in InstTimes[v][i]:
+                G.add_node(t*30 + i, pos=(t,i))
 
-    for i in Insts:
-        for t in InstTimes[0][i]:
-            G.add_node(t*30 + i, pos=(t,i))
-
-    for i in Insts:
-        for t in Times:
-            for j in Insts:
-                for tau in Times:
-                    if fuel_cost[0][i][t][j][tau]!= 0:
-                        G.add_edge(t*30 + i, tau*30 + j, weight=fuel_cost[0][i][t][j][tau])
+    for v in Vessels:
+        for i in Insts:
+            for t in Times:
+                for j in Insts:
+                    for tau in Times:
+                        if x_vars[v][i][t][j][tau]!= 0:
+                            G.add_edge(t*30 + i, tau*30 + j, weight=0)
                         
     
     edge_x = []
@@ -102,7 +105,7 @@ def draw_routes(fuel_cost, Insts, Times, Vessels):
                     hovermode='closest',
                     margin=dict(b=20,l=5,r=5,t=40),
                     annotations=[ dict(
-                        text="The Arc-Flow Model",
+                        text="The Arc Flow Model",
                         showarrow=False,
                         xref="paper", yref="paper",
                         x=0.005, y=-0.002 ) ],
