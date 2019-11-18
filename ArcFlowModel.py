@@ -106,7 +106,7 @@ def dp_consumption(serStartTime):
 
 # Check if the vessel will have time to return to the depot within the end of weekif it sails to installation inst2:
 def time_to_return(vessel, inst2, time2):
-    if  math.ceil(Distance[inst2][0]/(maxSpeed - SpeedImpact[Weather[time2]])) + time2 == AvaliableTime[vessel] + 168: #HER SJEKKER VI KUN WEATHER AV STARTTIDEN PÅ LEGGET
+    if  math.ceil(Distance[inst2][0]/(maxSpeed - SpeedImpact[Weather[time2]])) + time2 <= AvaliableTime[vessel] + 168: #HER SJEKKER VI KUN WEATHER AV STARTTIDEN PÅ LEGGET
         return True
     else:
         return False
