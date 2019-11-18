@@ -5,7 +5,6 @@ Created on Thu Oct 31 18:05:19 2019
 """
 import plotly.graph_objects as go
 from plotly.offline import plot
-#import matplotlib.pyplot as plt
 import networkx as nx
 
 def draw_routes(fuel_cost, Insts, Times, Vessels):
@@ -78,12 +77,12 @@ def draw_routes(fuel_cost, Insts, Times, Vessels):
             color=[],
             size=10,
             colorbar=dict(
-                thickness=15,
+                thickness=10,
                 title='Node Connections',
                 xanchor='left',
                 titleside='right'
             ),
-            line_width=2))    
+            line_width=2))      
     
     node_adjacencies = []
     node_text = []

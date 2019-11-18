@@ -144,21 +144,19 @@ def solve(fuel_cost):
     
     VesselCap = data.VesselCap
     
-    
-    
     # =============== VARIABLES ===============
 
     x = [[[[[[None for m in Voys]for t in Times]for j in Insts]for t in Times]for i in Insts]for v in Vessels]
     
     
     for v in Vessels:
-        for i in Insts:
-            for j in Insts:
-                if j != i:
-                    for t in departure_times[v][i][j]:
-                        for tau in specific_arrival_times[v][i][t][j]:
-                            for m in Voys:
-                               x[v][i][t][j][tau][m] = model.addVar(vtype=gp.GRB.BINARY, name=("x_" + str(v) + "_" + str(i) + "_" + str(t) + "_" + str(j) + "_" + str(tau) + "_" + str(m)))
+        for m in Voys:
+            for i in Insts:
+                for j in Insts:
+                    if j != i:
+                        for t in departure_times[v][i][j]:
+                            for tau in specific_arrival_times[v][i][t][j]:
+                               x[v][i][t][j][tau][m] = model.addVar(vtype=gp.GRB.BINARY, name=("x_" + str(v) + "_" + str(m) + "_" + str(i) + "_" + str(t) + "_" + str(j) + "_" + str(tau)))
                         
     
 
@@ -310,11 +308,19 @@ def solve(fuel_cost):
             
             gp.quicksum(
                     
-                    tau * x[v][i][t][0][tau][m-1]                     # The sum of finnishing times multiplied by the edge-variable for the last leg
+                    tau * x[v][i][t][0][tau][m-1]
                     
-                    for i in Insts                                     # of all installation
-                    for t in departure_times[v][i][0]                  # and all possible departure times when sailing from i to j
-                    for tau in specific_arrival_times[v][i][t][0])     
+                    for i in Insts
+                    for t in departure_times[v][i][0]
+                    for tau in specific_arrival_times[v][i][t][0])    
+            
+            + 300 * (1 - gp.quicksum(
+                    
+                    x[v][i][t][0][tau][m-1]
+                    
+                    for i in Insts
+                    for t in departure_times[v][i][0]
+                    for tau in specific_arrival_times[v][i][t][0]))   
             
             - gp.quicksum(
                     
@@ -332,7 +338,7 @@ def solve(fuel_cost):
                     for t in departure_times[v][0][j]
                     for tau in specific_arrival_times[v][0][t][j])) 
             
-            >= 0 
+            <= 0 
             
             for v in Vessels
             for m in Voys
@@ -415,7 +421,8 @@ def solve(fuel_cost):
     model.setObjective(
             
             gp.quicksum(x[v][i][t][j][tau][m] * fuel_cost[v][i][t][j][tau] 
-                for v in Vessels 
+                for v in Vessels
+                for m in Voys
                 for i in Insts
                 for j in Insts if j != i
                 for t in departure_times[v][i][j]
@@ -443,9 +450,18 @@ def solve(fuel_cost):
     for a in model.getVars():
         if a.varName[0] == 'x' and a.x == 1:
             temp = a.varName.split('_')
-            solEdges[int(temp[1])][int(temp[2])][int(temp[3])][int(temp[4])][int(temp[5])] = 1
+            solEdges[int(temp[1])][int(temp[3])][int(temp[4])][int(temp[5])][int(temp[6])] = 1
     
-
     
-    plotSol.draw_routes(solEdges, Insts, Times, Vessels)
+    tot = 0
+    for v in Vessels:
+        for i in Insts:
+            for t in Times:
+                for j in Insts:
+                    for tau in Times:
+                        tot += solEdges[v][i][t][j][tau]*fuel_cost[v][i][t][j][tau]
+                        
+    print(tot)
+    
+    plotSol.draw_routes(solEdges, fuel_cost)
 

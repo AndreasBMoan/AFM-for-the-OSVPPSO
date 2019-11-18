@@ -22,7 +22,6 @@ VesselNames = data.VesselNames
 AvaliableTime = data.AvaliableTime
 
 #Times
-
 Times = data.Times
 
 #WeatherForecast
@@ -64,28 +63,29 @@ def service_not_possible(inst, time):
     
     
     
-    
+# Total conumption for an arc:    
 def get_consumption(fromInst, toInst, loadingTime, depTime, arrTime, serStartTime, finTime):
     return depot_consumption(loadingTime) + sail_consumption(fromInst, toInst, depTime, arrTime, serStartTime) + idle_consumption(arrTime, serStartTime) + dp_consumption(serStartTime)
     
 
 
-
+# Fuel consumption while at supply depot:
 def depot_consumption(loadingTime):
     return loadingTime*depConsumption
     
 
 
-
+# Consumption from propulsion while sailing between platforms:
 def sail_consumption(fromInst, toInst, depTime, arrTime, serStartTime): 
+    speed = (arrTime - depTime)/Distance[fromInst][toInst]
     consumed = 0
     for time3 in range(depTime, arrTime + 1):
-        consumed += 1
-    return consumed
+        consumed += 2.7679*(speed + SpeedImpact[Weather[time3]])**2 - 38.75*(speed + SpeedImpact[Weather[time3]])+450.71
+    return consumed * fuelPrice
     
 
 
-
+# Consumption while idling, waiting for the installation to be ready for service:
 def idle_consumption(arrTime, serStartTime):
     consumed = 0
     if (arrTime != serStartTime):
@@ -95,7 +95,7 @@ def idle_consumption(arrTime, serStartTime):
 
 
 
-
+# Consumption while servicing the installation:
 def dp_consumption(serStartTime):
     consumed = 0
     for time3 in range(serStartTime, serStartTime + serviceTime +1):
@@ -104,15 +104,15 @@ def dp_consumption(serStartTime):
 
 
 
-
+# Check if the vessel will have time to return to the depot within the end of weekif it sails to installation inst2:
 def time_to_return(vessel, inst2, time2):
-    if  math.ceil(Distance[inst2][0]/(maxSpeed + SpeedImpact[Weather[time2]])) + time2 <= AvaliableTime[vessel] + 168: #HER SJEKKER VI KUN WEATHER AV STARTTIDEN PÅ LEGGET
+    if  math.ceil(Distance[inst2][0]/(maxSpeed - SpeedImpact[Weather[time2]])) + time2 == AvaliableTime[vessel] + 168: #HER SJEKKER VI KUN WEATHER AV STARTTIDEN PÅ LEGGET
         return True
     else:
         return False
 
 
-
+#Deciding what arcs to create & creating them
 def build_arcs(vessel, time1, inst1, loadingTime):
     
     #For all installations
@@ -178,21 +178,29 @@ def build_arcs(vessel, time1, inst1, loadingTime):
 
 count = 0
 
-
+#Deciding what nodes to create arcs from:
 for vessel in Vessels:
+    
     for time1 in range(AvaliableTime[vessel],AvaliableTime[vessel]+168,1):
-#        count+=1
-#        print("\rGenerating variables: %d%% "%math.ceil((count/(Vessels.size + 168))*100/5.8), end="\r", flush = True)
+
         for inst1 in Insts:
+            
             if time_to_return(vessel, inst1, time1):
+                
                 if inst1 == 0:
-                    if  time1 % 24 == 0 and time1 < 144 + AvaliableTime[vessel]: #We define 8 o clock the first day as the first time index
+                    
+                    if  time1 % 24 == 0 and time1 <= 144 + AvaliableTime[vessel]: #We define 8 o clock the first day as the first time index
                         build_arcs(vessel, time1, inst1, 8)
+                        
                 else: 
+                    
                     for tempinst in Insts:
+                        
                         for temptime in Times:
+                            
                             if fuel_cost[vessel][tempinst][temptime][inst1][time1] != 0:
                                 build_arcs(vessel, time1, inst1, 0)
+                                
                                 break
                         else:
                             continue
