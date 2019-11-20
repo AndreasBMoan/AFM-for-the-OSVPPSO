@@ -7,10 +7,15 @@ Created on Tue Nov 12 11:52:35 2019
 
 import plotly.graph_objects as go
 from plotly.offline import plot
-import matplotlib.pyplot as plt
 import networkx as nx
+import data
 
-def draw_routes(x_vars, Insts, Times, Vessels):
+Vessels = data.Vessels
+Insts = data.Insts
+Times = data.Times
+
+
+def draw_routes(x_vars,fuel_cost):
     G = nx.Graph()
 
     InstTimes = [[[] for i in Insts] for v in Vessels]
@@ -20,7 +25,7 @@ def draw_routes(x_vars, Insts, Times, Vessels):
                 count = 0
                 for j in Insts:
                     for tau in Times:
-                        if x_vars[v][j][tau][i][t] != 0 or x_vars[v][i][t][j][tau] != 0:
+                        if fuel_cost[v][j][tau][i][t] != 0 or fuel_cost[v][i][t][j][tau] != 0:
                             count += 1
                 if count != 0:
                     InstTimes[v][i].append(t)
@@ -54,7 +59,7 @@ def draw_routes(x_vars, Insts, Times, Vessels):
     
     edge_trace = go.Scatter(
         x=edge_x, y=edge_y,
-        line=dict(width=0.5, color='#666'),
+        line=dict(width=2, color='#BBB'),
         hoverinfo='none',
         mode='lines')
     
@@ -72,16 +77,26 @@ def draw_routes(x_vars, Insts, Times, Vessels):
         hoverinfo='text',
         marker=dict(
             showscale=True,
-            # colorscale options
-            #'Greys' | 'YlGnBu' | 'Greens' | 'YlOrRd' | 'Bluered' | 'RdBu' |
-            #'Reds' | 'Blues' | 'Picnic' | 'Rainbow' | 'Portland' | 'Jet' |
-            #'Hot' | 'Blackbody' | 'Earth' | 'Electric' | 'Viridis' |
-            colorscale='YlGnBu',
+#            ['aggrnyl', 'agsunset', 'algae', 'amp', 'armyrose', 'balance',
+#             'blackbody', 'bluered', 'blues', 'blugrn', 'bluyl', 'brbg',
+#             'brwnyl', 'bugn', 'bupu', 'burg', 'burgyl', 'cividis', 'curl',
+#             'darkmint', 'deep', 'delta', 'dense', 'earth', 'edge', 'electric',
+#             'emrld', 'fall', 'geyser', 'gnbu', 'gray', 'greens', 'greys',
+#             'haline', 'hot', 'hsv', 'ice', 'icefire', 'inferno', 'jet',
+#             'magenta', 'magma', 'matter', 'mint', 'mrybm', 'mygbm', 'oranges',
+#             'orrd', 'oryel', 'peach', 'phase', 'picnic', 'pinkyl', 'piyg',
+#             'plasma', 'plotly3', 'portland', 'prgn', 'pubu', 'pubugn', 'puor',
+#             'purd', 'purp', 'purples', 'purpor', 'rainbow', 'rdbu', 'rdgy',
+#             'rdpu', 'rdylbu', 'rdylgn', 'redor', 'reds', 'solar', 'spectral',
+#             'speed', 'sunset', 'sunsetdark', 'teal', 'tealgrn', 'tealrose',
+#             'tempo', 'temps', 'thermal', 'tropic', 'turbid', 'twilight',
+#             'viridis', 'ylgn', 'ylgnbu', 'ylorbr', 'ylorrd']
+            colorscale='bluyl',
             reversescale=True,
             color=[],
             size=10,
             colorbar=dict(
-                thickness=15,
+                thickness=10,
                 title='Node Connections',
                 xanchor='left',
                 titleside='right'
@@ -105,7 +120,7 @@ def draw_routes(x_vars, Insts, Times, Vessels):
                     hovermode='closest',
                     margin=dict(b=20,l=5,r=5,t=40),
                     annotations=[ dict(
-                        text="The Arc Flow Model",
+                        text="The Arc-Flow Model",
                         showarrow=False,
                         xref="paper", yref="paper",
                         x=0.005, y=-0.002 ) ],
