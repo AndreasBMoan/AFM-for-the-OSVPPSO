@@ -138,16 +138,16 @@ def solve(fuel_cost):
     
     # =============== PARAMETERS ===============
     
-    DemandNum = data.DemandNum
     
     Demand = data.Demand
+    
+    DemandNum = data.DemandNum
     
     VesselCap = data.VesselCap
     
     # =============== VARIABLES ===============
 
     x = [[[[[[None for m in Voys]for t in Times]for j in Insts]for t in Times]for i in Insts]for v in Vessels]
-    
     
     for v in Vessels:
         for m in Voys:
@@ -158,14 +158,18 @@ def solve(fuel_cost):
                             for tau in specific_arrival_times[v][i][t][j]:
                                x[v][i][t][j][tau][m] = model.addVar(vtype=gp.GRB.BINARY, name=("x_" + str(v) + "_" + str(m) + "_" + str(i) + "_" + str(t) + "_" + str(j) + "_" + str(tau)))
                         
+                        
+    a = [[0 for tau in Times]for j in Insts]
     
+    for j in Insts:
+        for tau in Times:
+            a[j][tau] = model.addVar(vtype=gp.GRB.INTEGER, name=("a_" + str(j) + "_" + str(tau)))
 
 
 #            print("\rGenerating variables: %d%% "%math.ceil(counter*100/(np.size(Vessels)*np.size(Insts))), end="\r", flush = True)
 #            counter += 1
 
     print("\n\nAll variables created successfully!\n")
-    
     
     
     # =============== MODEL UPDATE ===============
@@ -352,8 +356,63 @@ def solve(fuel_cost):
     print("\n\nAll ConstrN%d created successfully!\n" %constrCounter)
     
     
+    # --------------- Supply job number variable ----------------
+    
+#    constrCounter += 1
+#    
+#    model.addConstrs((
+#            
+#            gp.quicksum(
+#                    
+#                    x[v][i][t][j][tau][m]
+#                    
+#                    for v in Vessels
+#                    for i in Insts 
+#                    for t in Times
+#                    for tau in Times
+#                    if tau <= t3
+#                    for m in Voys
+#                    if fuel_cost[v][i][t][j][tau])
+#            
+#            == a[j][t3]
+#            
+#            for j in Insts
+#            if j != 0
+#            for t3 in Times)
+#            
+#            , name = ('Demanded_visits_' + str(j)))
+#
+#                                    
+#    
+#    print("\n\nAll ConstrN%d created successfully!\n" %constrCounter)
     
     # --------------- All service jobs must be performed ---------------
+    
+#    constrCounter += 1
+#    
+#    model.addConstrs((
+#            
+#            gp.quicksum(
+#                    
+#                    x[v][i][t][j][tau][m]
+#                    
+#                    for v in Vessels
+#                    for i in Insts 
+#                    if i != j
+#                    for t in departure_times[v][i][j]
+#                    for tau in specific_arrival_times[v][i][t][j]
+#                    for m in Voys)
+#            
+#            == DemandN[j]
+#            
+#            for j in Insts
+#            if j != 0)
+#            
+#            , name = ('Demanded_visits_' + str(j)))
+#    
+#                                    
+#    
+#    print("\n\nAll ConstrN%d created successfully!\n" %constrCounter)
     
     constrCounter += 1
     
@@ -381,10 +440,62 @@ def solve(fuel_cost):
     
     print("\n\nAll ConstrN%d created successfully!\n" %constrCounter)
     
+    # --------------- Demand deadlines ---------------
     
+#    constrCounter += 1
+#    
+#    model.addConstrs((
+#            
+#            gp.quicksum(
+#                    
+#                    t2 * x[v][i][t][j][t2][m]
+#                    
+#                    for v in Vessels
+#                    for i in Insts 
+#                    if i != j
+#                    for t in Times
+#                    for t2 in Times
+#                    if t2 <= t3
+#                    for m in Voys
+#                    if fuel_cost[v][i][t][j][t2] != 0)
+#            
+#            <= DemandDeadline[j][a[j][t3]]
+#            
+#            for j in Insts
+#            if j != 0
+#            for t3 in Times)
+#            
+#            , name = ('Demanded_visits_' + str(j)))
+#    
+#                                    
+#    
+#    print("\n\nAll ConstrN%d created successfully!\n" %constrCounter)
     
     # --------------- PSV capacity ---------------
-    
+
+#    constrCounter += 1
+#    
+#    model.addConstrs((
+#            
+#            gp.quicksum(
+#                    
+#                    x[v][i][t][j][tau][m] * Demand[j][a[j][tau]] 
+#                    
+#                    for i in Insts 
+#                    for j in Insts 
+#                    if j != 0
+#                    for t in departure_times[v][i][j]
+#                    for tau in specific_arrival_times[v][i][t][j]) 
+#            
+#            <= VesselCap[v]
+#            
+#            for v in Vessels
+#            for m in Voys)
+#            
+#            , "PSV capacity")
+#
+#    print("\n\nAll ConstrN%d created successfully!\n" %constrCounter)
+
     constrCounter += 1
     
     model.addConstrs((
@@ -420,7 +531,7 @@ def solve(fuel_cost):
     
     model.setObjective(
             
-            gp.quicksum(x[v][i][t][j][tau][m] * fuel_cost[v][i][t][j][tau] 
+            gp.quicksum(x[v][i][t][j][tau][m]
                 for v in Vessels
                 for m in Voys
                 for i in Insts

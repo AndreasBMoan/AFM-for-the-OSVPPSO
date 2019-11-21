@@ -62,12 +62,6 @@ def service_not_possible(inst, time):
         return False
     
     
-    
-# Total conumption for an arc:    
-def get_consumption(fromInst, toInst, loadingTime, depTime, arrTime, serStartTime, finTime):
-    return depot_consumption(loadingTime) + sail_consumption(fromInst, toInst, depTime, arrTime, serStartTime) + idle_consumption(arrTime, serStartTime) + dp_consumption(serStartTime)
-    
-
 
 # Fuel consumption while at supply depot:
 def depot_consumption(loadingTime):
@@ -104,76 +98,47 @@ def dp_consumption(serStartTime):
 
 
 
-# Check if the vessel will have time to return to the depot within the end of weekif it sails to installation inst2:
-def time_to_return(vessel, inst2, time2):
-    if  math.ceil(Distance[inst2][0]/(maxSpeed - SpeedImpact[Weather[time2]])) + time2 <= AvaliableTime[vessel] + 168: #HER SJEKKER VI KUN WEATHER AV STARTTIDEN PÅ LEGGET
-        return True
-    else:
-        return False
+def add_arc(vessel, fromInst, toInst, startTime, depTime, arrTime, serStartTime, finTime):
+    if math.ceil(Distance[toInst][0]/(maxSpeed)) + finTime <= AvaliableTime[vessel] + 168:
+        fuel_cost[vessel][fromInst][startTime][toInst][finTime] = (
+                depot_consumption(depTime - startTime) 
+                + sail_consumption(fromInst, toInst, depTime, arrTime, serStartTime) 
+                + idle_consumption(arrTime, serStartTime) 
+                + dp_consumption(serStartTime))
 
-
-#Deciding what arcs to create & creating them
 def build_arcs(vessel, time1, inst1, loadingTime):
     
-    #For all installations
     for inst2 in Insts: 
         
-        #That are not equal to the installation you are sailing from
         if inst2 != inst1: 
-            
-            #Calculate the earliest and latest possible arrival time
             tMin = (math.ceil(Distance[inst1][inst2]/maxSpeed) + loadingTime + time1)
             tMax = (math.ceil(Distance[inst1][inst2]/minSpeed) + loadingTime + time1) 
-            
-            #Initializa a variable that ensures we only sail to a closed installation at the latest possible arrival time
             closedVisit = 0 
             
-            #iterate through all possible arrival times between tMax & tMin
             for time2 in range(tMax, tMin-1, -1):
                 
-                #Check if the vessel arrives at a time where service is not possible and that the vessel is not arriving at a later time
                 if ((service_not_possible(inst2, time2)) == True) and (closedVisit == 0): 
-                    
-                    #update closed visit variable
                     closedVisit = 1 
-                    
-                    #initiate end of waiting time variable
                     time3 = time2 + 1 
                     
-                    #While service cannot be performed
                     while (service_not_possible(inst2, time3)) == True:
-                        
-                        #update end of waiting time variable
                         time3 += 1 
-                    
-                    #if the arrival-installation is the depot
-                    if inst2 == 0: 
                         
-                        #create a to-depot specific edge
-                        fuel_cost[vessel][inst1][time1][inst2][time2] = get_consumption(inst1, inst2, loadingTime, time1, time2, time2, time2)
-                    
-                    #else (if installation isnt depot) check if the vessel has time to return to depot after visiting the installation
-                    elif time_to_return(vessel, inst2, time3 + serviceTime) == True:
-                        fuel_cost[vessel][inst1][time1][inst2][time3 + serviceTime + loadingTime] = get_consumption(inst1, inst2, loadingTime, time1 + loadingTime, time2, time3, time3 + serviceTime) #Create an edge
+                    if inst2 == 0: 
+                        add_arc(vessel, inst1, inst2, time1, time1, time2, time2, time2)
+                        
+                    else:
+                        add_arc(vessel, inst1, inst2, time1, time1 + loadingTime, time2 + loadingTime, time3 + loadingTime, time3 + serviceTime  + loadingTime) #Create an edge  
                         
                 else: 
                     
-                    #if service can be performed upon arrival
-                    if (service_not_possible(inst2, time2) == False):
+                    if (service_not_possible(inst2, time2) == False): 
                         
-                        #and vessel has time to return to depot
-                        if time_to_return(vessel, inst2, time2 + serviceTime) == True: 
+                        if inst2 == 0:
+                            add_arc(vessel, inst1, inst2, time1, time1, time2, time2, time2)
                             
-                            #if the arrival-installation is the depot
-                            if inst2 == 0:
-                                
-                                #create depot-specific edge 
-                                fuel_cost[vessel][inst1][time1][inst2][time2] = get_consumption(inst1, inst2, loadingTime, time1, time2, time2, time2)
-                                
-                            else:
-                                
-                                #create edge
-                                fuel_cost[vessel][inst1][time1][inst2][time2 + serviceTime + loadingTime] = get_consumption(inst1, inst2, loadingTime, time1 + loadingTime, time2, time2, time2 + serviceTime) 
+                        else:
+                           add_arc(vessel, inst1, inst2, time1, time1 + loadingTime, time2 + loadingTime, time2 + loadingTime, time2 + serviceTime + loadingTime) 
 
 
 count = 0
@@ -182,29 +147,25 @@ count = 0
 for vessel in Vessels:
     
     for time1 in range(AvaliableTime[vessel],AvaliableTime[vessel]+168,1):
-
-        for inst1 in Insts:
+        
+        for inst1 in Insts: 
             
-            if time_to_return(vessel, inst1, time1):
+            if inst1 == 0:
                 
-                if inst1 == 0:
+                if  time1 % 24 == 0 and time1 <= 144 + AvaliableTime[vessel]:
+                    build_arcs(vessel, time1, inst1, 8) 
                     
-                    if  time1 % 24 == 0 and time1 <= 144 + AvaliableTime[vessel]: #We define 8 o clock the first day as the first time index
-                        build_arcs(vessel, time1, inst1, 8)
-                        
-                else: 
+            else: 
+                for tempinst in Insts:
                     
-                    for tempinst in Insts:
+                    for temptime in Times:
                         
-                        for temptime in Times:
-                            
-                            if fuel_cost[vessel][tempinst][temptime][inst1][time1] != 0:
-                                build_arcs(vessel, time1, inst1, 0)
-                                
-                                break
-                        else:
-                            continue
-                        break
+                        if fuel_cost[vessel][tempinst][temptime][inst1][time1] != 0:
+                            build_arcs(vessel, time1, inst1, 0)
+                            break
+                    else:
+                        continue
+                    break
 
 
 print("\n\nNetwork generation successful!")
