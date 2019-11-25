@@ -1,27 +1,22 @@
 import gurobipy as gp
 import data
-import plotSol
+
+
+#import plotSol
 #import numpy as np
 #import time
 
-def solve(fuel_cost):
+def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
 
-    model = gp.Model()
-
+    # =============== INITIATE MODEL ===============
+    
+    Env = gp.Env(Name + ".log")
+    
+    model = gp.Model(name = Name, env = Env)
+    
+    model.setParam('TimeLimit', 3*60*60)
+    
     # =============== SETS ===============
-    
-    
-    # --------------- Voys ---------------
-    
-    Voys = data.Voys
-    
-    Insts = data.Insts
-    
-    Vessels = data.Vessels
-    
-    Times = data.Times
-    
-    
     
     # --------------- node_times ---------------
     
@@ -33,6 +28,7 @@ def solve(fuel_cost):
                 count = 0
                 for j in Insts:
                     for tau in Times:
+                        #print(v,i,t,j,tau)
                         if fuel_cost[v][j][tau][i][t] != 0 or fuel_cost[v][i][t][j][tau] != 0:
                             count += 1
                 if count != 0:
@@ -139,9 +135,9 @@ def solve(fuel_cost):
     # =============== PARAMETERS ===============
     
     
-    Demand = data.Demand
+    Demand = data.Demand[instSetting]
     
-    DemandNum = data.DemandNum
+    DemandNum = data.DemandNum[instSetting]
     
     VesselCap = data.VesselCap
     
@@ -159,61 +155,28 @@ def solve(fuel_cost):
                                x[v][i][t][j][tau][m] = model.addVar(vtype=gp.GRB.BINARY, name=("x_" + str(v) + "_" + str(m) + "_" + str(i) + "_" + str(t) + "_" + str(j) + "_" + str(tau)))
                         
                         
-    a = [[0 for tau in Times]for j in Insts]
-    
-    for j in Insts:
-        for tau in Times:
-            a[j][tau] = model.addVar(vtype=gp.GRB.INTEGER, name=("a_" + str(j) + "_" + str(tau)))
+#    a = [[0 for tau in Times]for j in Insts]
+#    
+#    for j in Insts:
+#        for tau in Times:
+#            a[j][tau] = model.addVar(vtype=gp.GRB.INTEGER, name=("a_" + str(j) + "_" + str(tau)))
 
 
 #            print("\rGenerating variables: %d%% "%math.ceil(counter*100/(np.size(Vessels)*np.size(Insts))), end="\r", flush = True)
 #            counter += 1
 
-    print("\n\nAll variables created successfully!\n")
     
     
     # =============== MODEL UPDATE ===============
 
     model.update()
-
-
-
-    # =============== SUMMARIZING MODEL ===============
     
-    print("Number of Installations:",len(Insts))
-    print("Number of vessels:      ",len(Vessels))
-    print("Number of time periods: ",len(Times))
-    print("Number of voyages:      ",len(Voys))
-    
-    # Finding number of variables:
-    count = 0            
-    for i in Insts:
-        for v in Vessels:
-            for j in Insts:
-                if i != j:
-                    
-#                    print("Departures:",v,i,j,departure_times[v][i][j])
-                    
-                    for t in departure_times[v][i][j]:
-                        
-#                        print("Arrivals:",v,i,t,j,specific_arrival_times[v][i][t][j])
-                        
-                        for tau in specific_arrival_times[v][i][t][j]:
-                            for m in Voys:
-                                if fuel_cost[v][i][t][j][tau] != 0: 
-                                    count += 1
-                                    
-    print("Number of variables:    ",count)
-
 
 
     # =============== CONSTRAINTS ===============
 
 
-    # --------------- Flow conservation ---------------
-    
-    constrCounter = 1
-    
+    # --------------- Flow conservation ---------------  
     
     model.addConstrs((
             
@@ -242,14 +205,8 @@ def solve(fuel_cost):
             , "Flow Conservation")
                                     
 
-    print("\n\nAll ConstrN%d created successfully!\n" % constrCounter)
-
-
     
-    # --------------- Any installation can only be visited once per voyage ---------------
-    
-    constrCounter += 1
-    
+    # --------------- Any installation can only be visited once per voyage --------------- 
 
     model.addConstrs((
             
@@ -269,16 +226,10 @@ def solve(fuel_cost):
             for m in Voys)
             
             , "Only one Inst visit per voy")
-                            
-                            
+            
 
-    print("\n\nAll ConstrN%d created successfully!\n" %constrCounter)
-    
-    
     
     # --------------- Evry PSV can only sail from the depot once per voyage ---------------
-    
-    constrCounter += 1
     
     model.addConstrs((
             
@@ -297,17 +248,10 @@ def solve(fuel_cost):
             
             , "Only sail from depot once per voyage")
                                 
-                                
-    
-    print("\n\nAll ConstrN%d created successfully!\n" %constrCounter)
-    
     
     
     # --------------- Next voyage must start after the last one ---------------
     
-    constrCounter += 1
-    
-
     model.addConstrs((
             
             gp.quicksum(
@@ -350,10 +294,6 @@ def solve(fuel_cost):
             
             , "Next voyage must start after current voyage" )
 
-
-
-    
-    print("\n\nAll ConstrN%d created successfully!\n" %constrCounter)
     
     
     # --------------- Supply job number variable ----------------
@@ -414,8 +354,6 @@ def solve(fuel_cost):
 #    
 #    print("\n\nAll ConstrN%d created successfully!\n" %constrCounter)
     
-    constrCounter += 1
-    
     model.addConstrs((
             
             gp.quicksum(
@@ -435,10 +373,8 @@ def solve(fuel_cost):
             if j != 0)
             
             , name = ('Demanded_visits_' + str(j)))
-    
-                                    
-    
-    print("\n\nAll ConstrN%d created successfully!\n" %constrCounter)
+
+
     
     # --------------- Demand deadlines ---------------
     
@@ -495,8 +431,6 @@ def solve(fuel_cost):
 #            , "PSV capacity")
 #
 #    print("\n\nAll ConstrN%d created successfully!\n" %constrCounter)
-
-    constrCounter += 1
     
     model.addConstrs((
             
@@ -517,8 +451,6 @@ def solve(fuel_cost):
             
             , "PSV capacity")
 
-    print("\n\nAll ConstrN%d created successfully!\n" %constrCounter)
-
 
 
     # =============== MODEL UPDATE ===============
@@ -531,17 +463,18 @@ def solve(fuel_cost):
     
     model.setObjective(
             
-            gp.quicksum(x[v][i][t][j][tau][m]
+            gp.quicksum(x[v][i][t][j][tau][m] * fuel_cost[v][i][t][j][tau]
                 for v in Vessels
                 for m in Voys
                 for i in Insts
-                for j in Insts if j != i
+                for j in Insts 
+                if j != i
                 for t in departure_times[v][i][j]
                 for tau in specific_arrival_times[v][i][t][j]), 
             
             gp.GRB.MINIMIZE)
                         
-            
+        
             
     # =============== MODEL UPDATE ===============
 
@@ -574,5 +507,5 @@ def solve(fuel_cost):
                         
     print(tot)
     
-    plotSol.draw_routes(solEdges, fuel_cost)
+    #plotSol.draw_routes(solEdges, fuel _cost)
 
