@@ -146,10 +146,12 @@ minSpeed = 7
 
 serviceTime = 2
 
-sailingFuelConsume = 0.34
+sailingFuelConsume = 340
 
-dpFuelConsume = 0.17
+dpFuelConsume = 170
 
-idleFuelConsume = 0.12
+idleFuelConsume = 120
 
-depConsumption = 0.045
+depConsumption = 45
+
+spotHourRate = 5653

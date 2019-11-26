@@ -10,31 +10,36 @@ class model:
     
     # ================== INITIALIZATION ==================
     
-    def __init__(self, nInsts, nVessels, nTimes, nVoys, instSetting, weatherSetting):
+    def __init__(self, nInsts, nVessels, nSpot, nVoys, nTimes, instSetting, weatherSetting):
     
         max_waiting_time = max(d.AvaliableTime)
         
-        self.Vessels = d.Vessels[:nVessels]
-        self.Insts = d.Insts[:nInsts]
-        self.Times = d.Times[:nTimes+max_waiting_time + 1]
-        self.Voys = d.Voys[:nVoys]
+        self.Vessels        = d.Vessels[:nVessels + nSpot]
+        self.Insts          = d.Insts[:nInsts]
+        self.Times          = d.Times[:nTimes+max_waiting_time + 1]
+        self.Voys           = d.Voys[:nVoys]
+                
+        self.ClosingInsts   = d.ClosingInsts[instSetting]
+        self.Distance       = d.Distance[instSetting]
+        self.Weather        = d.Weather[weatherSetting]
+        self.LayTime        = d.LayTime[instSetting]
+        self.AvaliableTime  = d.AvaliableTime[:nVessels + nSpot]
         
-        self.nTimes = nTimes
-        self.nInsts = nInsts
-        self.nVessels = nVessels
-        self.nVoys = nVoys
+        for vessel in self.Vessels[nVessels:]:
+            self.AvaliableTime[vessel] = 0
         
-        self.instSetting = instSetting
+        self.nTimes         = nTimes
+        self.nInsts         = nInsts
+        self.nVessels       = nVessels
+        self.nVoys          = nVoys
+        self.nSpot          = nSpot
+        
+        self.instSetting    = instSetting
         self.weatherSetting = weatherSetting
         
-        self.ClosingInsts = d.ClosingInsts[instSetting]
-        self.Distance = d.Distance[instSetting]
-        self.Weather = d.Weather[weatherSetting]
-        self.LayTime = d.LayTime[instSetting]
+        self.name           = "Instance-i"+str(self.nInsts)+"-v"+str(self.nVessels)+"-s"+str(self.nSpot)+"-t"+str(self.nTimes)+"-m"+str(self.nVoys)+"-is"+str(self.instSetting)+"-ws"+str(self.weatherSetting)
         
-        self.name = "Instance-"+str(self.nInsts)+"-"+str(self.nVessels)+"-"+str(self.nTimes)+"-"+str(self.nVoys)+"-"+str(self.instSetting)+"-"+str(self.weatherSetting)
-        
-        self.fuel_cost = [[[[[0 for tau in self.Times]for inst2 in self.Insts]for t in self.Times]for inst1 in self.Insts]for v in self.Vessels]
+        self.fuel_cost      = [[[[[0 for tau in self.Times]for inst2 in self.Insts]for t in self.Times]for inst1 in self.Insts]for v in self.Vessels]
         
         self.run_model()
 
@@ -79,13 +84,13 @@ class model:
     def build_model(self):
         for vessel in self.Vessels:
             
-            for time1 in range(d.AvaliableTime[vessel],d.AvaliableTime[vessel]+self.nTimes,1):
+            for time1 in range(self.AvaliableTime[vessel],self.AvaliableTime[vessel]+self.nTimes,1):
                 
                 for inst1 in self.Insts: 
                     
                     if inst1 == 0:
                         
-                        if time1 % 24 == 0 and time1 <= self.nTimes - 24 + d.AvaliableTime[vessel]:
+                        if time1 % 24 == 0 and time1 <= self.nTimes - 24 + self.AvaliableTime[vessel]:
                             self.build_arcs(vessel, time1, inst1, 8) 
                             
                     else: 
@@ -111,7 +116,7 @@ class model:
             
             if inst2 != inst1: 
                 tMin = (math.ceil(self.Distance[inst1][inst2]/d.maxSpeed) + loadingTime + time1)
-                tMax = min((math.ceil(self.Distance[inst1][inst2]/d.minSpeed) + loadingTime + time1),self.nTimes + d.AvaliableTime[vessel])
+                tMax = min((math.ceil(self.Distance[inst1][inst2]/d.minSpeed) + loadingTime + time1),self.nTimes + self.AvaliableTime[vessel])
                 closedVisit = 0 
                 
                 for time2 in range(tMax, tMin-1, -1):
@@ -120,7 +125,7 @@ class model:
                         closedVisit = 1 
                         time3 = time2
                         
-                        while (self.service_not_possible(inst2, time3)) == True and time3 < self.nTimes + d.AvaliableTime[vessel]-1:
+                        while (self.service_not_possible(inst2, time3)) == True and time3 < self.nTimes + self.AvaliableTime[vessel]-1:
                             time3 += 1 
                             
                         if inst2 == 0: 
@@ -145,13 +150,14 @@ class model:
     
     def add_arc(self, vessel, fromInst, toInst, startTime, depTime, arrTime, serStartTime, finTime):
         
-        if math.ceil(self.Distance[toInst][0]/(d.maxSpeed)) + finTime <= d.AvaliableTime[vessel] + self.nTimes:
+        if math.ceil(self.Distance[toInst][0]/(d.maxSpeed)) + finTime <= self.AvaliableTime[vessel] + self.nTimes:
             
             self.fuel_cost[vessel][fromInst][startTime][toInst][finTime] = (
                     self.depot_consumption(depTime - startTime)
                     + self.sail_consumption(fromInst, toInst, depTime, arrTime, serStartTime)
                     + self.idle_consumption(arrTime, serStartTime)
-                    + self.dp_consumption(serStartTime, toInst))
+                    + self.dp_consumption(serStartTime, toInst)
+                    + self.spot_price(vessel, startTime, finTime))
     
     
     
@@ -209,6 +215,15 @@ class model:
             consumed += d.dpFuelConsume*(1 + self.Weather[time3] * 0.1)
         return consumed * d.fuelPrice
     
+    
+    
+    # ------------------ Price of renting the ship for the duration of the arc ------------------
+    
+    def spot_price(self, vessel, time1, time2):
+        price = 0
+        if vessel >= self.nVessels:
+            price = d.spotHourRate*(time2 - time1)
+        return price
     
     
         

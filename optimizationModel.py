@@ -452,7 +452,30 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
             , "PSV capacity")
 
 
-
+    
+    # --------------- Spread of arrivals ---------------
+#    
+#    model.addConstrs((
+#            
+#            gp.quicksum(
+#                    
+#                    x[v][i][t][j][tau][m]
+#                    
+#                    for v in Vessels
+#                    for m in Voys
+#                    for i in Insts
+#                    for t in departure_times[v][i][j]
+#                    for tau in specific_arrival_times[v][i][t][j]
+#                    if t2 - tau <= d.spreadTime)
+#            
+#            <= 1
+#            
+#            for j in Insts
+#            for t2 in Times)
+#            
+#            , "Spread of arrivals")
+#    
+    
     # =============== MODEL UPDATE ===============
 
     model.update()
