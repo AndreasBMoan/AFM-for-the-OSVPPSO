@@ -28,11 +28,27 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
                 count = 0
                 for j in Insts:
                     for tau in Times:
-                        #print(v,i,t,j,tau)
                         if fuel_cost[v][j][tau][i][t] != 0 or fuel_cost[v][i][t][j][tau] != 0:
                             count += 1
                 if count != 0:
                     node_times[v][i].append(t)
+    
+    
+    
+    # --------------- node_vessels ---------------
+    
+    node_vessels = [[[]for t in Times] for i in Insts]
+    
+    for i in Insts:
+        for t in Times:
+            for v in Vessels:
+                count = 0
+                for j in Insts:
+                    for tau in Times:
+                        if fuel_cost[v][j][tau][i][t] != 0 or fuel_cost[v][i][t][j][tau] != 0:
+                            count += 1
+                if count != 0:
+                    node_vessels[i][t].append(v)
     
     
     
@@ -296,63 +312,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
 
     
     
-    # --------------- Supply job number variable ----------------
-    
-#    constrCounter += 1
-#    
-#    model.addConstrs((
-#            
-#            gp.quicksum(
-#                    
-#                    x[v][i][t][j][tau][m]
-#                    
-#                    for v in Vessels
-#                    for i in Insts 
-#                    for t in Times
-#                    for tau in Times
-#                    if tau <= t3
-#                    for m in Voys
-#                    if fuel_cost[v][i][t][j][tau])
-#            
-#            == a[j][t3]
-#            
-#            for j in Insts
-#            if j != 0
-#            for t3 in Times)
-#            
-#            , name = ('Demanded_visits_' + str(j)))
-#
-#                                    
-#    
-#    print("\n\nAll ConstrN%d created successfully!\n" %constrCounter)
-    
     # --------------- All service jobs must be performed ---------------
-    
-#    constrCounter += 1
-#    
-#    model.addConstrs((
-#            
-#            gp.quicksum(
-#                    
-#                    x[v][i][t][j][tau][m]
-#                    
-#                    for v in Vessels
-#                    for i in Insts 
-#                    if i != j
-#                    for t in departure_times[v][i][j]
-#                    for tau in specific_arrival_times[v][i][t][j]
-#                    for m in Voys)
-#            
-#            == DemandN[j]
-#            
-#            for j in Insts
-#            if j != 0)
-#            
-#            , name = ('Demanded_visits_' + str(j)))
-#    
-#                                    
-#    
-#    print("\n\nAll ConstrN%d created successfully!\n" %constrCounter)
     
     model.addConstrs((
             
@@ -376,61 +336,8 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
 
 
     
-    # --------------- Demand deadlines ---------------
-    
-#    constrCounter += 1
-#    
-#    model.addConstrs((
-#            
-#            gp.quicksum(
-#                    
-#                    t2 * x[v][i][t][j][t2][m]
-#                    
-#                    for v in Vessels
-#                    for i in Insts 
-#                    if i != j
-#                    for t in Times
-#                    for t2 in Times
-#                    if t2 <= t3
-#                    for m in Voys
-#                    if fuel_cost[v][i][t][j][t2] != 0)
-#            
-#            <= DemandDeadline[j][a[j][t3]]
-#            
-#            for j in Insts
-#            if j != 0
-#            for t3 in Times)
-#            
-#            , name = ('Demanded_visits_' + str(j)))
-#    
-#                                    
-#    
-#    print("\n\nAll ConstrN%d created successfully!\n" %constrCounter)
-    
     # --------------- PSV capacity ---------------
 
-#    constrCounter += 1
-#    
-#    model.addConstrs((
-#            
-#            gp.quicksum(
-#                    
-#                    x[v][i][t][j][tau][m] * Demand[j][a[j][tau]] 
-#                    
-#                    for i in Insts 
-#                    for j in Insts 
-#                    if j != 0
-#                    for t in departure_times[v][i][j]
-#                    for tau in specific_arrival_times[v][i][t][j]) 
-#            
-#            <= VesselCap[v]
-#            
-#            for v in Vessels
-#            for m in Voys)
-#            
-#            , "PSV capacity")
-#
-#    print("\n\nAll ConstrN%d created successfully!\n" %constrCounter)
     
     model.addConstrs((
             
@@ -454,27 +361,28 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
 
     
     # --------------- Spread of arrivals ---------------
-#    
-#    model.addConstrs((
-#            
-#            gp.quicksum(
-#                    
-#                    x[v][i][t][j][tau][m]
-#                    
-#                    for v in Vessels
-#                    for m in Voys
-#                    for i in Insts
-#                    for t in departure_times[v][i][j]
-#                    for tau in specific_arrival_times[v][i][t][j]
-#                    if t2 - tau <= d.spreadTime)
-#            
-#            <= 1
-#            
-#            for j in Insts
-#            for t2 in Times)
-#            
-#            , "Spread of arrivals")
-#    
+    
+    model.addConstrs((
+            
+            gp.quicksum(
+                    
+                    x[v][i][t][j][tau][m]
+                    
+                    for v in Vessels
+                    for m in Voys
+                    for i in Insts
+                    for t in departure_times[v][i][j]
+                    for tau in specific_arrival_times[v][i][t][j]
+                    if t2 - tau <= data.spreadTime
+                    if tau - t2 <= 0)
+            
+            <= 1
+            
+            for j in Insts
+            for t2 in Times)
+            
+            , "Spread of arrivals")
+    
     
     # =============== MODEL UPDATE ===============
 
