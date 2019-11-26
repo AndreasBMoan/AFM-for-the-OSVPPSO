@@ -115,8 +115,18 @@ class model:
         for inst2 in self.Insts: 
             
             if inst2 != inst1: 
-                tMin = (math.ceil(self.Distance[inst1][inst2]/d.maxSpeed) + loadingTime + time1)
+                
+                tMin = loadingTime + time1
+                
+                distanceLeft = self.Distance[inst1][inst2]
+                
+                while distanceLeft > 0:
+                    distanceLeft -= d.maxSpeed + d.SpeedImpact[self.Weather[tMin]]
+                    tMin += 1
+                
                 tMax = min((math.ceil(self.Distance[inst1][inst2]/d.minSpeed) + loadingTime + time1),self.nTimes + self.AvaliableTime[vessel])
+                
+
                 closedVisit = 0 
                 
                 for time2 in range(tMax, tMin-1, -1):
@@ -149,9 +159,9 @@ class model:
     # ------------------ Adding arcs to the model ------------------
     
     def add_arc(self, vessel, fromInst, toInst, startTime, depTime, arrTime, serStartTime, finTime):
-        
-        if math.ceil(self.Distance[toInst][0]/(d.maxSpeed)) + finTime <= self.AvaliableTime[vessel] + self.nTimes:
             
+        if self.time_to_return(vessel, toInst, finTime):
+
             self.fuel_cost[vessel][fromInst][startTime][toInst][finTime] = (
                     self.depot_consumption(depTime - startTime)
                     + self.sail_consumption(fromInst, toInst, depTime, arrTime, serStartTime)
@@ -161,7 +171,7 @@ class model:
     
     
     
-    # ================== HELPING FUNCTIONS ==================
+    # ================== HELPING FUNCTIONS ==================    
     
     # ------------------ Check weather or not service can be performed ------------------
     
@@ -173,6 +183,23 @@ class model:
         
         
         
+    # ------------------ Check weather or not vessel will have time to return to supply depot after visiting installation ------------------
+    
+    def time_to_return(self, vessel, inst, time):
+        
+        t = 0
+        
+        distanceLeft = self.Distance[inst][0]
+        
+        while distanceLeft > 0:
+            distanceLeft -= d.maxSpeed + d.SpeedImpact[self.Weather[time + t]]
+            t += 1
+            
+        if time + t <= self.AvaliableTime[vessel] + self.nTimes:
+            return True
+        else:
+            return False
+    
     # ------------------ Fuel consumption while at supply depot ------------------
     
     def depot_consumption(self, loadingTime):
