@@ -136,7 +136,7 @@ ServiceImpact = [0,1,1,300]
 
 fuelPrice = 0.400
 
-maxSpeed = 16
+maxSpeed = 14
 
 minSpeed = 7
 
