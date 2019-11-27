@@ -142,7 +142,7 @@ class model:
                             self.add_arc(vessel, inst1, inst2, time1, time1, time2, time2, time2)
                             
                         else:
-                            self.add_arc(vessel, inst1, inst2, time1, time1 + loadingTime, time2 + loadingTime, time3 + loadingTime, time3 + self.LayTime[inst2] + loadingTime) #Create an edge  
+                            self.add_arc(vessel, inst1, inst2, time1, time1 + loadingTime, time2 + loadingTime, time3 + loadingTime, time3 + self.LayTime[inst2] + d.ServiceImpact[self.Weather[time3 + loadingTime]] + loadingTime) #Create an edge  
                             
                     else: 
                         
@@ -152,7 +152,7 @@ class model:
                                 self.add_arc(vessel, inst1, inst2, time1, time1, time2, time2, time2)
                                 
                             else:
-                               self.add_arc(vessel, inst1, inst2, time1, time1 + loadingTime, time2 + loadingTime, time2 + loadingTime, time2 + self.LayTime[inst2] + loadingTime) 
+                               self.add_arc(vessel, inst1, inst2, time1, time1 + loadingTime, time2 + loadingTime, time2 + loadingTime, time2 + self.LayTime[inst2] + d.ServiceImpact[self.Weather[time2 + loadingTime]] + loadingTime) 
                                
     
    
