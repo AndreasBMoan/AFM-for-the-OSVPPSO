@@ -214,7 +214,7 @@ class model:
             speed = (arrTime - depTime)/self.Distance[fromInst][toInst]
             consumed = 0
             for time3 in range(depTime, arrTime + 1):
-                consumed += 2.7679*(speed + d.SpeedImpact[self.Weather[time3]])**2 - 38.75*(speed + d.SpeedImpact[self.Weather[time3]])+450.71
+                consumed += 9*(speed + d.SpeedImpact[self.Weather[time3]])**2 - 129*(speed + d.SpeedImpact[self.Weather[time3]])+700.0
             return consumed * d.fuelPrice
         else:
             return 0
