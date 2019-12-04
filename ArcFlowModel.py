@@ -63,18 +63,22 @@ class model:
         self.build_model()
         print("\nNetwork generation successful!")
         print("------------------------------------------------")
-        print("Plotting graph....")
+        
+        # OBS! Comment out graph plotting function when optimizing
+        
+#        print("Plotting graph....")
+        
         plot.draw_routes(self.fuel_cost,self.Insts,self.Times,self.Vessels)
         print("-------------- OPTIMIZING MODEL ----------------\n")
         
-#        try:
-#            om.solve(self.fuel_cost, self.Vessels, self.Insts, self.Times, self.Voys, self.instSetting, self.name)
-#        
-#        except gp.GurobiError as e:
-#            print('Error code ' + str(e.errno) + ": " + str(e))
-#        
-#        except AttributeError:
-#            print('Encountered an attribute error: Mogadishu')
+        try:
+            om.solve(self.fuel_cost, self.Vessels, self.Insts, self.Times, self.Voys, self.instSetting, self.name)
+        
+        except gp.GurobiError as e:
+            print('Error code ' + str(e.errno) + ": " + str(e))
+        
+        except AttributeError:
+            print('Encountered an attribute error')
         
         
         
