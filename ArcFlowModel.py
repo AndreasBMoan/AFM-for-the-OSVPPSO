@@ -64,11 +64,13 @@ class model:
         print("\nNetwork generation successful!")
         print("------------------------------------------------")
         
-        # OBS! Comment out graph plotting function when optimizing
+#       ------------------------------------------------------------
+#       | OBS! Comment out graph plotting function when optimizing |
+#       ------------------------------------------------------------
         
 #        print("Plotting graph....")
+#        plot.draw_routes(self.fuel_cost,self.Insts,self.Times,self.Vessels)
         
-        plot.draw_routes(self.fuel_cost,self.Insts,self.Times,self.Vessels)
         print("-------------- OPTIMIZING MODEL ----------------\n")
         
         try:
