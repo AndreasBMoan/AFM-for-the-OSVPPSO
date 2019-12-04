@@ -2,6 +2,7 @@
 import math
 import gurobipy as gp
 import data as d, optimizationModel as om
+import plot
 
 
 #import plot
@@ -11,22 +12,23 @@ class model:
     # ================== INITIALIZATION ==================
     
     def __init__(self, nInsts, nVessels, nSpot, nVoys, nTimes, instSetting, weatherSetting):
-    
-        max_waiting_time = max(d.AvaliableTime)
         
-        self.Vessels        = d.Vessels[:nVessels + nSpot]
-        self.Insts          = d.Insts[:nInsts]
-        self.Times          = d.Times[:nTimes+max_waiting_time + 1]
-        self.Voys           = d.Voys[:nVoys]
-                
         self.ClosingInsts   = d.ClosingInsts[instSetting]
         self.Distance       = d.Distance[instSetting]
         self.Weather        = d.Weather[weatherSetting]
         self.LayTime        = d.LayTime[instSetting]
         self.AvaliableTime  = d.AvaliableTime[:nVessels + nSpot]
         
+        self.Vessels        = d.Vessels[:nVessels + nSpot]
+        self.Insts          = d.Insts[:nInsts]
+        self.Voys           = d.Voys[:nVoys]
+        
         for vessel in self.Vessels[nVessels:]:
             self.AvaliableTime[vessel] = 0
+        
+        max_waiting_time = max(self.AvaliableTime)
+        
+        self.Times          = d.Times[:nTimes+max_waiting_time + 1]
         
         self.nTimes         = nTimes
         self.nInsts         = nInsts
@@ -62,17 +64,17 @@ class model:
         print("\nNetwork generation successful!")
         print("------------------------------------------------")
         print("Plotting graph....")
-        # plot.draw_routes(self.fuel_cost,self.Insts,self.Times,self.Vessels)
+        plot.draw_routes(self.fuel_cost,self.Insts,self.Times,self.Vessels)
         print("-------------- OPTIMIZING MODEL ----------------\n")
         
-        try:
-            om.solve(self.fuel_cost, self.Vessels, self.Insts, self.Times, self.Voys, self.instSetting, self.name)
-        
-        except gp.GurobiError as e:
-            print('Error code ' + str(e.errno) + ": " + str(e))
-        
-        except AttributeError:
-            print('Encountered an attribute error: Mogadishu')
+#        try:
+#            om.solve(self.fuel_cost, self.Vessels, self.Insts, self.Times, self.Voys, self.instSetting, self.name)
+#        
+#        except gp.GurobiError as e:
+#            print('Error code ' + str(e.errno) + ": " + str(e))
+#        
+#        except AttributeError:
+#            print('Encountered an attribute error: Mogadishu')
         
         
         
@@ -84,14 +86,14 @@ class model:
     def build_model(self):
         for vessel in self.Vessels:
             
-            for time1 in range(self.AvaliableTime[vessel],self.AvaliableTime[vessel]+self.nTimes,1):
+            for time1 in range(self.AvaliableTime[vessel],self.AvaliableTime[vessel]+self.nTimes +1,1):
                 
                 for inst1 in self.Insts: 
                     
                     if inst1 == 0:
                         
                         if time1 % 24 == 0 and time1 <= self.nTimes - 24 + self.AvaliableTime[vessel]:
-                            self.build_arcs(vessel, time1, inst1, 8) 
+                            self.build_arcs(vessel, time1, inst1, 8)
                             
                     else: 
                         for tempinst in self.Insts:
@@ -117,44 +119,38 @@ class model:
             if inst2 != inst1: 
                 
                 tMin = loadingTime + time1
-                
                 distanceLeft = self.Distance[inst1][inst2]
-                
                 while distanceLeft > 0:
                     distanceLeft -= d.maxSpeed + d.SpeedImpact[self.Weather[tMin]]
                     tMin += 1
                 
                 tMax = min((math.ceil(self.Distance[inst1][inst2]/d.minSpeed) + loadingTime + time1),self.nTimes + self.AvaliableTime[vessel])
                 
-
-                closedVisit = 0 
-                
-                for time2 in range(tMax, tMin-1, -1):
+                for time2 in range(tMin, tMax+1):
                     
-                    if ((self.service_not_possible(inst2, time2)) == True) and (closedVisit == 0): 
-                        closedVisit = 1 
-                        time3 = time2
+                    if ((self.service_possible(inst2, time2)) == False) and (time2 == tMax): 
                         
-                        while (self.service_not_possible(inst2, time3)) == True and time3 < self.nTimes + self.AvaliableTime[vessel]-1:
-                            time3 += 1 
-                            
                         if inst2 == 0: 
                             self.add_arc(vessel, inst1, inst2, time1, time1, time2, time2, time2)
                             
                         else:
-                            self.add_arc(vessel, inst1, inst2, time1, time1 + loadingTime, time2 + loadingTime, time3 + loadingTime, time3 + self.LayTime[inst2] + d.ServiceImpact[self.Weather[time3 + loadingTime]] + loadingTime) #Create an edge  
                             
-                    else: 
-                        
-                        if (self.service_not_possible(inst2, time2) == False): 
+                            time3 = time2
+                            while (self.service_possible(inst2, time3)) == False and time3 < self.nTimes + self.AvaliableTime[vessel]-1:
+                                time3 += 1 
+                                
+                            self.add_arc(vessel, inst1, inst2, time1, time1+ loadingTime, time2, time3, time3 + self.LayTime[inst2] + d.ServiceImpact[self.Weather[time3]])
+                            
+                    elif self.service_possible(inst2, time2) == True: 
                             
                             if inst2 == 0:
                                 self.add_arc(vessel, inst1, inst2, time1, time1, time2, time2, time2)
                                 
                             else:
-                               self.add_arc(vessel, inst1, inst2, time1, time1 + loadingTime, time2 + loadingTime, time2 + loadingTime, time2 + self.LayTime[inst2] + d.ServiceImpact[self.Weather[time2 + loadingTime]] + loadingTime) 
+                               self.add_arc(vessel, inst1, inst2, time1, time1 + loadingTime, time2, time2, time2 + self.LayTime[inst2] + d.ServiceImpact[self.Weather[time2]]) 
                                
     
+
    
     # ------------------ Adding arcs to the model ------------------
     
@@ -168,34 +164,30 @@ class model:
                     + self.idle_consumption(arrTime, serStartTime)
                     + self.dp_consumption(serStartTime, toInst)
                     + self.spot_price(vessel, startTime, finTime))
-    
-    
+
     
     # ================== HELPING FUNCTIONS ==================    
     
     # ------------------ Check weather or not service can be performed ------------------
-    
-    def service_not_possible(self, inst, time):
-        if (self.Weather[time] == 3) or ((self.ClosingInsts[inst] == True) and ((time % 24 < 6) or (time % 24 > 18))) or ((inst == 0) and (time % 24 != 0)):
-            return True
-        else:
-            return False
         
+    def service_possible(self, inst, time):
+        if (inst != 0 and self.Weather[time] == 3) or ((self.ClosingInsts[inst] == True) and ((time % 24 < 22) and (time % 24 >= 12))) or ((inst == 0) and (time % 24 != 0)):
+            return False
+        else:
+            return True
         
         
     # ------------------ Check weather or not vessel will have time to return to supply depot after visiting installation ------------------
     
     def time_to_return(self, vessel, inst, time):
         
-        t = 0
-        
+        t = time
         distanceLeft = self.Distance[inst][0]
-        
         while distanceLeft > 0:
-            distanceLeft -= d.maxSpeed + d.SpeedImpact[self.Weather[time + t]]
+            distanceLeft -= d.maxSpeed + d.SpeedImpact[self.Weather[t]]
             t += 1
             
-        if time + t <= self.AvaliableTime[vessel] + self.nTimes:
+        if t <= self.AvaliableTime[vessel] + self.nTimes:
             return True
         else:
             return False
@@ -214,7 +206,7 @@ class model:
             speed = (arrTime - depTime)/self.Distance[fromInst][toInst]
             consumed = 0
             for time3 in range(depTime, arrTime + 1):
-                consumed += 9*(speed + d.SpeedImpact[self.Weather[time3]])**2 - 129*(speed + d.SpeedImpact[self.Weather[time3]])+700.0
+                consumed += 9*(speed + d.SpeedImpact[self.Weather[time3]])**2 - 126*(speed + d.SpeedImpact[self.Weather[time3]])+700.0
             return consumed * d.fuelPrice
         else:
             return 0

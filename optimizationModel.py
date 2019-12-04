@@ -145,8 +145,17 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
                     for tau in Times:
                         if fuel_cost[v][i][t][j][tau] != 0:
                             specific_arrival_times[v][i][t][j].append(tau)
+                            
     
     
+    # --------------- symmetric_vessels ---------------
+    
+    symmetric_vessels =  [[0 for v2 in Vessels] for v1 in Vessels]
+    
+    for v1 in Vessels:
+        for v2 in Vessels:
+            if data.AvaliableTime[v1] == data.AvaliableTime[v2]:
+                symmetric_vessels[v1][v2] = 1
     
     # =============== PARAMETERS ===============
     
@@ -218,7 +227,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
             for t in node_times[v][i]
             for m in Voys)
             
-            , "Flow Conservation")
+            , "Flow_Conservation:_v" + str(v) + " i" + str(i) + " t" + str(t) + " m" + str(m))
                                     
 
     
@@ -241,7 +250,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
             for v in Vessels
             for m in Voys)
             
-            , "Only one Inst visit per voy")
+            , "Only one Inst visit per voy: j" + str(j) + " v" + str(v) + " m" + str(m))
             
 
     
@@ -262,7 +271,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
             for v in Vessels
             for m in Voys)
             
-            , "Only sail from depot once per voyage")
+            , "Only sail from depot once per voyage: v" + str(v) + " m" + str(m))
                                 
     
     
@@ -308,7 +317,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
             for m in Voys
             if m != 0)
             
-            , "Next voyage must start after current voyage" )
+            , "Next voyage must start after current voyage: v" + str(v) + " m" + str(m))
 
     
     
@@ -332,7 +341,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
             for j in Insts
             if j != 0)
             
-            , name = ('Demanded_visits_' + str(j)))
+            , name = ("Demanded visits: j" + str(j)))
 
 
     
@@ -356,7 +365,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
             for v in Vessels
             for m in Voys)
             
-            , "PSV capacity")
+            , "PSV capacity: v" + str(v) + " m" + str(m))
 
 
     
@@ -383,13 +392,53 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
                 for j in Insts
                 for t2 in Times)
                 
-                , "Spread of arrivals")
+                , "Spread of arrivals: j" + str(j) + " t2" + str(t2))
+                
+                
     
+    # --------------- Symmetry Breaking ---------------
+    
+    
+    model.addConstrs((
+            
+            gp.quicksum(
+                    
+                    x[v1][i][t][j][tau][1] * fuel_cost[v1][i][t][j][tau]
+                    
+                    for i in Insts
+                    for j in Insts
+                    for t in departure_times[v1][i][j]
+                    for tau in specific_arrival_times[v1][i][t][j])
+            
+            + (1 - gp.quicksum(
+                    
+                    x[v1][0][t][j][tau][1]
+
+                    for j in Insts
+                    for t in departure_times[v1][0][j]
+                    for tau in specific_arrival_times[v1][0][t][j]))
+            
+            - gp.quicksum(
+                    
+                    x[v2][i][t][j][tau][1] * fuel_cost[v2][i][t][j][tau]
+                    
+                    for i in Insts
+                    for j in Insts
+                    for t in departure_times[v2][i][j]
+                    for tau in specific_arrival_times[v2][i][t][j])    
+            
+            >= 0.01
+            
+            for v1 in Vessels
+            for v2 in Vessels
+            if v1 < v2
+            if symmetric_vessels[v1][v2] == 1)
+            
+            , "Symmetry Breaking:")
     
     # =============== MODEL UPDATE ===============
 
     model.update()
-
 
 
     # =============== OBJECTIVE ===============
@@ -412,8 +461,10 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
     # =============== MODEL UPDATE ===============
 
     model.update()
-
-
+    
+    model.printStats()
+    
+    #model.write(Name + ".lp")
 
     # =============== RUN MODEL ===============
     
