@@ -168,7 +168,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
     
     # =============== VARIABLES ===============
 
-    x = [[[[[[None for m in Voys]for t in Times]for j in Insts]for t in Times]for i in Insts]for v in Vessels]
+    x = {}
     
     for v in Vessels:
         for m in Voys:
@@ -177,7 +177,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
                     if j != i:
                         for t in departure_times[v][i][j]:
                             for tau in specific_arrival_times[v][i][t][j]:
-                               x[v][i][t][j][tau][m] = model.addVar(vtype=gp.GRB.BINARY, name=("x_" + str(v) + "_" + str(m) + "_" + str(i) + "_" + str(t) + "_" + str(j) + "_" + str(tau)))
+                               x[v,i,t,j,tau,m] = model.addVar(vtype=gp.GRB.BINARY, name=("x_" + str(v) + "_" + str(m) + "_" + str(i) + "_" + str(t) + "_" + str(j) + "_" + str(tau)))
                         
                         
 #    a = [[0 for tau in Times]for j in Insts]
@@ -207,14 +207,14 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
             
             gp.quicksum(
                     
-                    x[v][j][tau][i][t][m]
+                    x[v,j,tau,i,t,m]
             
                     for j in from_insts[v][i][t]
                     for tau in specific_departure_times[v][j][i][t])
             
             - gp.quicksum(
                     
-                    x[v][i][t][j][tau][m]
+                    x[v,i,t,j,tau,m]
             
                     for j in to_insts[v][i][t]
                     for tau in specific_arrival_times[v][i][t][j])
@@ -237,7 +237,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
             
             gp.quicksum(
                     
-                    x[v][i][t][j][tau][m] 
+                    x[v,i,t,j,tau,m] 
                     
                     for i in Insts 
                     if i != j
@@ -260,7 +260,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
             
             gp.quicksum(
                     
-                    x[v][0][t][j][tau][m] 
+                    x[v,0,t,j,tau,m] 
                     
                     for j in Insts 
                     for t in departure_times[v][0][j]
@@ -281,7 +281,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
             
             gp.quicksum(
                     
-                    tau * x[v][i][t][0][tau][m-1]
+                    tau * x[v,i,t,0,tau,m-1]
                     
                     for i in Insts
                     for t in departure_times[v][i][0]
@@ -289,7 +289,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
             
             + 300 * (1 - gp.quicksum(
                     
-                    x[v][i][t][0][tau][m-1]
+                    x[v,i,t,0,tau,m-1]
                     
                     for i in Insts
                     for t in departure_times[v][i][0]
@@ -297,7 +297,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
             
             - gp.quicksum(
                     
-                    t * x[v][0][t][j][tau][m] 
+                    t * x[v,0,t,j,tau,m] 
                     
                     for j in Insts 
                     for t in departure_times[v][0][j] 
@@ -305,7 +305,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
             
             - 300 * (1 - gp.quicksum(
                     
-                    x[v][0][t][j][tau][m]
+                    x[v,0,t,j,tau,m]
                     
                     for j in Insts 
                     for t in departure_times[v][0][j]
@@ -327,7 +327,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
             
             gp.quicksum(
                     
-                    x[v][i][t][j][tau][m]
+                    x[v,i,t,j,tau,m]
                     
                     for v in Vessels
                     for i in Insts 
@@ -352,7 +352,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
             
             gp.quicksum(
                     
-                    x[v][i][t][j][tau][m] * Demand[j] 
+                    x[v,i,t,j,tau,m] * Demand[j] 
                     
                     for i in Insts 
                     for j in Insts 
@@ -377,7 +377,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
                 
                 gp.quicksum(
                         
-                        x[v][i][t][j][tau][m]
+                        x[v,i,t,j,tau,m]
                         
                         for v in Vessels
                         for m in Voys
@@ -445,7 +445,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
     
     model.setObjective(
             
-            gp.quicksum(x[v][i][t][j][tau][m] * fuel_cost[v][i][t][j][tau]
+            gp.quicksum(x[v,i,t,j,tau,m] * fuel_cost[v][i][t][j][tau]
                 for v in Vessels
                 for m in Voys
                 for i in Insts
