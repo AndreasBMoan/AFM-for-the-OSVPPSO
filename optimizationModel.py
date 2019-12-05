@@ -392,49 +392,49 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
                 for j in Insts
                 for t2 in Times)
                 
-                , "Spread of arrivals: j" + str(j) + " t2" + str(t2))
+                , "Spread of arrivals:")
                 
                 
     
     # --------------- Symmetry Breaking ---------------
     
     
-    model.addConstrs((
-            
-            gp.quicksum(
-                    
-                    x[v1][i][t][j][tau][1] * fuel_cost[v1][i][t][j][tau]
-                    
-                    for i in Insts
-                    for j in Insts
-                    for t in departure_times[v1][i][j]
-                    for tau in specific_arrival_times[v1][i][t][j])
-            
-            + (1 - gp.quicksum(
-                    
-                    x[v1][0][t][j][tau][1]
-
-                    for j in Insts
-                    for t in departure_times[v1][0][j]
-                    for tau in specific_arrival_times[v1][0][t][j]))
-            
-            - gp.quicksum(
-                    
-                    x[v2][i][t][j][tau][1] * fuel_cost[v2][i][t][j][tau]
-                    
-                    for i in Insts
-                    for j in Insts
-                    for t in departure_times[v2][i][j]
-                    for tau in specific_arrival_times[v2][i][t][j])    
-            
-            >= 0.01
-            
-            for v1 in Vessels
-            for v2 in Vessels
-            if v1 < v2
-            if symmetric_vessels[v1][v2] == 1)
-            
-            , "Symmetry Breaking:")
+#    model.addConstrs((
+#            
+#            gp.quicksum(
+#                    
+#                    x[v1][i][t][j][tau][1] * fuel_cost[v1][i][t][j][tau]
+#                    
+#                    for i in Insts
+#                    for j in Insts
+#                    for t in departure_times[v1][i][j]
+#                    for tau in specific_arrival_times[v1][i][t][j])
+#            
+#            + (1 - gp.quicksum(
+#                    
+#                    x[v1][0][t][j][tau][1]
+#
+#                    for j in Insts
+#                    for t in departure_times[v1][0][j]
+#                    for tau in specific_arrival_times[v1][0][t][j]))
+#            
+#            - gp.quicksum(
+#                    
+#                    x[v2][i][t][j][tau][1] * fuel_cost[v2][i][t][j][tau]
+#                    
+#                    for i in Insts
+#                    for j in Insts
+#                    for t in departure_times[v2][i][j]
+#                    for tau in specific_arrival_times[v2][i][t][j])    
+#            
+#            >= 0.01
+#            
+#            for v1 in Vessels
+#            for v2 in Vessels
+#            if v1 < v2
+#            if symmetric_vessels[v1][v2] == 1)
+#            
+#            , "Symmetry Breaking:")
     
     # =============== MODEL UPDATE ===============
 
@@ -464,7 +464,7 @@ def solve(fuel_cost, Vessels, Insts, Times, Voys, instSetting, Name):
     
     model.printStats()
     
-    #model.write(Name + ".lp")
+    model.write(Name + ".lp")
 
     # =============== RUN MODEL ===============
     

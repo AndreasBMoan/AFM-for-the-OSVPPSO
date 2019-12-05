@@ -68,8 +68,8 @@ class model:
 #       | OBS! Comment out graph plotting function when optimizing |
 #       ------------------------------------------------------------
         
-#        print("Plotting graph....")
-#        plot.draw_routes(self.fuel_cost,self.Insts,self.Times,self.Vessels)
+        print("Plotting graph....")
+        plot.draw_routes(self.fuel_cost,self.Insts,self.Times,self.Vessels)
         
         print("-------------- OPTIMIZING MODEL ----------------\n")
         
@@ -127,7 +127,7 @@ class model:
                 tMin = loadingTime + time1
                 distanceLeft = self.Distance[inst1][inst2]
                 while distanceLeft > 0:
-                    distanceLeft -= d.maxSpeed + d.SpeedImpact[self.Weather[tMin]]
+                    distanceLeft -= (d.maxSpeed - d.SpeedImpact[self.Weather[tMin]])
                     tMin += 1
                 
                 tMax = min((math.ceil(self.Distance[inst1][inst2]/d.minSpeed) + loadingTime + time1),self.nTimes + self.AvaliableTime[vessel])
@@ -190,7 +190,7 @@ class model:
         t = time
         distanceLeft = self.Distance[inst][0]
         while distanceLeft > 0:
-            distanceLeft -= d.maxSpeed + d.SpeedImpact[self.Weather[t]]
+            distanceLeft -= (d.maxSpeed - d.SpeedImpact[self.Weather[t]])
             t += 1
             
         if t <= self.AvaliableTime[vessel] + self.nTimes:
@@ -209,10 +209,10 @@ class model:
 
     def sail_consumption(self, fromInst, toInst, depTime, arrTime, serStartTime): 
         if self.Distance[fromInst][toInst] != 0:
-            speed = (arrTime - depTime)/self.Distance[fromInst][toInst]
+            speed = max(d.minSpeed, self.Distance[fromInst][toInst]/(arrTime - depTime))
             consumed = 0
             for time3 in range(depTime, arrTime + 1):
-                consumed += 9*(speed + d.SpeedImpact[self.Weather[time3]])**2 - 126*(speed + d.SpeedImpact[self.Weather[time3]])+700.0
+                consumed += (0.8125*(speed + d.SpeedImpact[self.Weather[time3]])**2 - 13*(speed + d.SpeedImpact[self.Weather[time3]])+82.75)*speed
             return consumed * d.fuelPrice
         else:
             return 0
